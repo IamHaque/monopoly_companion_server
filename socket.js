@@ -15,8 +15,6 @@ const {
   getActivePlayersInRoom,
 } = require('./players');
 
-const file = require('./file');
-
 module.exports = (server) => {
   const socketIO = new Server(server, {
     cors: {
@@ -31,7 +29,7 @@ module.exports = (server) => {
   });
 
   socketIO.on('connection', (socket) => {
-    file.log(`⚡: ${socket.id} connected`);
+    console.log(`⚡: ${socket.id} connected`);
 
     socket.on('create_room', ({ username }, callback) => {
       const roomId = generateId();
@@ -63,7 +61,7 @@ module.exports = (server) => {
       });
 
       socket.join(player.roomId);
-      file.log(`🔃: ${player.name} rejoined ${player.roomId}`);
+      console.log(`🔃: ${player.name} rejoined ${player.roomId}`);
 
       broadcastUpdatedPlayerData(player?.roomId);
       callback();
@@ -73,7 +71,7 @@ module.exports = (server) => {
       const player = paySalaryToPlayer(playerId);
       if (!player) return;
 
-      file.log(`💰: Paid salary to ${player?.name}`);
+      console.log(`💰: Paid salary to ${player?.name}`);
       broadcastUpdatedPlayerData(player?.roomId);
     });
 
@@ -89,7 +87,7 @@ module.exports = (server) => {
         });
         if (!player) return;
 
-        file.log(`🫱🏽‍🫲🏽: ${player?.name} traded ${balance} with Bank`);
+        console.log(`🫱🏽‍🫲🏽: ${player?.name} traded ${balance} with Bank`);
         broadcastUpdatedPlayerData(player?.roomId);
         return;
       }
@@ -98,7 +96,7 @@ module.exports = (server) => {
       const fromPlayer = getPlayer(currentPlayerId);
       if (!toPlayer || !fromPlayer) return;
 
-      file.log(
+      console.log(
         `🔔: ${fromPlayer?.name} sent trade request to  ${toPlayer?.name}`
       );
       socketIO.to(toPlayer?.id).emit('trade_request', {
@@ -112,7 +110,7 @@ module.exports = (server) => {
     socket.on(
       'trade_response',
       ({ action, playerId, balance, currentPlayerId }) => {
-        file.log(`✔️: Traded ${action}ed `);
+        console.log(`✔️: Traded ${action}ed `);
         if (action !== 'accept') return;
 
         const player = trade({
@@ -131,7 +129,7 @@ module.exports = (server) => {
       const player = changePlayerStatus(playerId, status);
       if (!player) return;
 
-      file.log(
+      console.log(
         `${status === 'online' ? '🟢' : '🟠'}: ${player?.name} went ${status}`
       );
       broadcastUpdatedPlayerData(player?.roomId);
@@ -142,7 +140,7 @@ module.exports = (server) => {
     });
 
     socket.on('disconnect', () => {
-      file.log(`🔥: ${socket.id} disconnected`);
+      console.log(`🔥: ${socket.id} disconnected`);
       exitRoom(socket.id, 'disconnected');
     });
 
@@ -160,7 +158,7 @@ module.exports = (server) => {
       });
 
       socket.join(player.roomId);
-      file.log(`➕: ${player.name} joined ${player.roomId}`);
+      console.log(`➕: ${player.name} joined ${player.roomId}`);
 
       // socket.broadcast.to(player.roomId).emit('notify_players', {
       //   ...player,
@@ -176,7 +174,7 @@ module.exports = (server) => {
 
       socket.leave(player?.roomId);
 
-      file.log(`➖: ${player?.name} left ${player?.roomId}`);
+      console.log(`➖: ${player?.name} left ${player?.roomId}`);
       broadcastUpdatedPlayerData(player?.roomId);
     }
 

@@ -1,6 +1,4 @@
-const fileHelper = require('./file');
-
-const players = fileHelper.read() || [];
+const players = [];
 const SALARY_AMOUNT = 200;
 const STARTING_AMOUNT = 1500;
 const COLORS = [
@@ -194,8 +192,6 @@ const getPlayersInRoom = (roomId) =>
   players.filter((player) => player.roomId === roomId);
 
 const getActivePlayersInRoom = (roomId) => {
-  fileHelper.write(players);
-
   return players.filter(
     (player) => player?.roomId === roomId && player?.status !== 'disconnected'
   );
