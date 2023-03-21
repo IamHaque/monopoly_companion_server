@@ -1,24 +1,14 @@
+const app = require('./app');
+const routes = require('./routes/router');
 const initializeSocket = require('./socket.js');
-const express = require('express');
-const http = require('http');
-const cors = require('cors');
 
-const { getAllPlayers } = require('./players');
+const PORT = process.env.PORT || 4000;
 
-const PORT = 4000;
-const app = express();
+app.use('/', routes);
+
 const server = http.Server(app);
 
-app.use(cors());
-
-app.get('/', (req, res) => {
-  const players = getAllPlayers();
-  res.json({
-    players,
-  });
-});
-
-server.listen(PORT, () => {
+server.listen(PORT, function () {
   console.log(`Server listening on http://localhost:${PORT}`);
 });
 
