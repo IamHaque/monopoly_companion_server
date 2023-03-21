@@ -6,19 +6,10 @@
       "use": "@vercel/node"
     }
   ],
-  "rewrites": [{ "src": "/(.*)", "dest": "/index.js" }],
-  "headers": [
+  "routes": [
     {
-      "source": "/(.*)",
-      "headers": [{ "key": "Access-Control-Allow-Origin", "value": "*" }]
-    },
-    {
-      "source": "https://monopoly-companion-server.vercel.app/(.*)",
-      "headers": [{ "key": "Access-Control-Allow-Origin", "value": "*" }]
-    },
-    {
-      "source": "https://monopoly-companion.vercel.app/(.*)",
-      "headers": [{ "key": "Access-Control-Allow-Origin", "value": "*" }]
+      "src": "/(.*)",
+      "dest": "/index.js"
     }
   ]
 }
