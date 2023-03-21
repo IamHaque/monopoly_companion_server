@@ -18,7 +18,11 @@ const {
 module.exports = (server) => {
   const socketIO = new Server(server, {
     cors: {
-      origin: ['http://localhost:5173', 'https://admin.socket.io'],
+      origin: [
+        'http://localhost:5173',
+        'https://admin.socket.io',
+        'https://monopoly-companion.vercel.app',
+      ],
       credentials: true,
     },
   });
