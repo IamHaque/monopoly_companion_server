@@ -1,5 +1,4 @@
 const { Server } = require('socket.io');
-const { instrument } = require('@socket.io/admin-ui');
 
 const { generateId } = require('./utils');
 const {
@@ -9,31 +8,23 @@ const {
   reAddPlayer,
   isValidRoom,
   removePlayer,
-  getPlayersInRoom,
   paySalaryToPlayer,
   changePlayerStatus,
   getActivePlayersInRoom,
 } = require('./players');
 
+const file = require('./file');
+
 module.exports = (server) => {
   const socketIO = new Server(server, {
     cors: {
-      origin: [
-        'http://localhost:5173',
-        'https://admin.socket.io',
-        'https://monopoly-companion.vercel.app',
-      ],
+      origin: ['http://localhost:5173', 'https://iris-marred-church.glitch.me'],
       credentials: true,
     },
   });
 
-  instrument(socketIO, {
-    auth: false,
-    mode: 'development',
-  });
-
   socketIO.on('connection', (socket) => {
-    console.log(`⚡: ${socket.id} connected`);
+    file.log(`⚡: ${socket.id} connected`);
 
     socket.on('create_room', ({ username }, callback) => {
       const roomId = generateId();
@@ -65,8 +56,13 @@ module.exports = (server) => {
       });
 
       socket.join(player.roomId);
-      console.log(`🔃: ${player.name} rejoined ${player.roomId}`);
+      file.log(`🔃: ${player?.name} rejoined ${player.roomId}`);
 
+      broadcastAction(
+        player?.roomId,
+        `${player?.name} re-joined the game`,
+        'success'
+      );
       broadcastUpdatedPlayerData(player?.roomId);
       callback();
     });
@@ -75,7 +71,8 @@ module.exports = (server) => {
       const player = paySalaryToPlayer(playerId);
       if (!player) return;
 
-      console.log(`💰: Paid salary to ${player?.name}`);
+      file.log(`💰: Paid salary to ${player?.name}`);
+      broadcastAction(player?.roomId, `${player?.name} received salary`);
       broadcastUpdatedPlayerData(player?.roomId);
     });
 
@@ -91,7 +88,13 @@ module.exports = (server) => {
         });
         if (!player) return;
 
-        console.log(`🫱🏽‍🫲🏽: ${player?.name} traded ${balance} with Bank`);
+        let broadcastMessage =
+          balance < 0
+            ? `${player?.name} paid ₹${Math.abs(balance)} to the Bank`
+            : `${player?.name} received ₹${Math.abs(balance)} from the Bank`;
+        broadcastAction(player?.roomId, broadcastMessage);
+
+        file.log(`🫱🏽‍🫲🏽: ${broadcastMessage}`);
         broadcastUpdatedPlayerData(player?.roomId);
         return;
       }
@@ -100,7 +103,7 @@ module.exports = (server) => {
       const fromPlayer = getPlayer(currentPlayerId);
       if (!toPlayer || !fromPlayer) return;
 
-      console.log(
+      file.log(
         `🔔: ${fromPlayer?.name} sent trade request to  ${toPlayer?.name}`
       );
       socketIO.to(toPlayer?.id).emit('trade_request', {
@@ -114,7 +117,7 @@ module.exports = (server) => {
     socket.on(
       'trade_response',
       ({ action, playerId, balance, currentPlayerId }) => {
-        console.log(`✔️: Traded ${action}ed `);
+        file.log(`✔️: Traded ${action}ed `);
         if (action !== 'accept') return;
 
         const player = trade({
@@ -125,6 +128,16 @@ module.exports = (server) => {
         });
         if (!player) return;
 
+        const currentPlayer = getPlayer(currentPlayerId)?.name;
+        let broadcastMessage =
+          balance < 0
+            ? `${player?.name} paid ₹${Math.abs(balance)} to ${currentPlayer}`
+            : `${player?.name} received ₹${Math.abs(
+                balance
+              )} from ${currentPlayer}`;
+        broadcastAction(player?.roomId, broadcastMessage);
+
+        file.log(`✔️:${broadcastMessage}`);
         broadcastUpdatedPlayerData(player?.roomId);
       }
     );
@@ -133,7 +146,7 @@ module.exports = (server) => {
       const player = changePlayerStatus(playerId, status);
       if (!player) return;
 
-      console.log(
+      file.log(
         `${status === 'online' ? '🟢' : '🟠'}: ${player?.name} went ${status}`
       );
       broadcastUpdatedPlayerData(player?.roomId);
@@ -144,7 +157,7 @@ module.exports = (server) => {
     });
 
     socket.on('disconnect', () => {
-      console.log(`🔥: ${socket.id} disconnected`);
+      file.log(`🔥: ${socket.id} disconnected`);
       exitRoom(socket.id, 'disconnected');
     });
 
@@ -162,11 +175,12 @@ module.exports = (server) => {
       });
 
       socket.join(player.roomId);
-      console.log(`➕: ${player.name} joined ${player.roomId}`);
-
-      // socket.broadcast.to(player.roomId).emit('notify_players', {
-      //   ...player,
-      // });
+      file.log(`➕: ${player.name} joined ${player.roomId}`);
+      broadcastAction(
+        player?.roomId,
+        `${player?.name} joined the game`,
+        'success'
+      );
 
       broadcastUpdatedPlayerData(player?.roomId);
       callback();
@@ -175,11 +189,16 @@ module.exports = (server) => {
     function exitRoom(playerId, action) {
       const player = removePlayer(playerId, action);
       if (!player) return;
+      file.log(`➖: ${player?.name} left ${player?.roomId}`);
 
       socket.leave(player?.roomId);
 
-      console.log(`➖: ${player?.name} left ${player?.roomId}`);
+      broadcastAction(player?.roomId, `${player?.name} left the game`, 'error');
       broadcastUpdatedPlayerData(player?.roomId);
+    }
+
+    function broadcastAction(roomId, message, type = 'info') {
+      socketIO.to(roomId).emit('log_action', { message, type });
     }
 
     function broadcastUpdatedPlayerData(roomId) {

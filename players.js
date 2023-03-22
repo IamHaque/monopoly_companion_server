@@ -1,4 +1,6 @@
-const players = [];
+const fileHelper = require('./file');
+
+const players = fileHelper.read() || [];
 const SALARY_AMOUNT = 200;
 const STARTING_AMOUNT = 1500;
 const COLORS = [
@@ -20,8 +22,15 @@ const COLORS = [
   '#ff5722',
 ];
 
+const capitalize = (str) => {
+  return str
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 const addPlayer = ({ id, name, roomId }) => {
-  name = name.trim().toLowerCase();
+  name = capitalize(name.trim());
   roomId = roomId.trim().toLowerCase();
 
   const existingPlayer = players.find(
@@ -192,6 +201,8 @@ const getPlayersInRoom = (roomId) =>
   players.filter((player) => player.roomId === roomId);
 
 const getActivePlayersInRoom = (roomId) => {
+  fileHelper.write(players);
+
   return players.filter(
     (player) => player?.roomId === roomId && player?.status !== 'disconnected'
   );
