@@ -36,17 +36,19 @@ const getAllPlayersInRoom = (roomId) => {
 
 // Returns all active players in room
 const getActivePlayersInRoom = (roomId) => {
-  return GAME_DATA[roomId].filter((player) => player.status !== 'disconnected');
+  return GAME_DATA[roomId]?.filter(
+    (player) => player.status !== 'disconnected'
+  );
 };
 
 // Returns player in room
 const getPlayerInRoom = (playerId, roomId) => {
-  return GAME_DATA[roomId].find((player) => player.id === playerId);
+  return GAME_DATA[roomId]?.find((player) => player.id === playerId);
 };
 
 // Returns player index in room
 const getPlayerIndexInRoom = (playerId, roomId) => {
-  return GAME_DATA[roomId].findIndex((player) => player.id === playerId);
+  return GAME_DATA[roomId]?.findIndex((player) => player.id === playerId);
 };
 
 // Returns player by player id
@@ -63,7 +65,7 @@ const getPlayerByPlayerId = (playerId) => {
 
 // Returns the banker in room
 const getBankerInRoom = (roomId) => {
-  return GAME_DATA[roomId].find((player) => player.isBanker === true);
+  return GAME_DATA[roomId]?.find((player) => player.isBanker === true);
 };
 
 // Returns the room id of player

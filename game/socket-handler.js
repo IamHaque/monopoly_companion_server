@@ -2,6 +2,8 @@
 const { log } = require('../utils/io');
 // Service for game logic
 const GameService = require('./service');
+// Service for history logic
+const HistoryService = require('./history-service');
 
 module.exports.gameHandler = (socketIO, socket) => {
   log(`${socket.id} connected`);
@@ -71,14 +73,25 @@ module.exports.gameHandler = (socketIO, socket) => {
   // trade_response
   socket.on(
     'trade_response',
-    ({ action, playerId, balance, currentPlayerId }) => {
-      // trade request rejected
-      if (action !== 'accept') {
+    ({ action, playerId, balance, requestedBy, currentPlayerId }) => {
+      const player = GameService.getPlayerByPlayerId(playerId);
+      // enable trade option for all players
+      socketIO.to(player.roomId).emit('enable_trade');
+
+      // trade request accepted
+      if (action === 'accept') {
+        tradeWithPlayer(playerId, currentPlayerId, balance);
         return;
       }
 
-      // trade request accepted
-      tradeWithPlayer(playerId, currentPlayerId, balance);
+      // notify everyone that a trade has been rejected
+      broadcastAction(
+        player.roomId,
+        `${player.name} rejected ${requestedBy}'s trade request`
+      );
+
+      // broadcast updated player data
+      broadcastUpdatedPlayerData(player.roomId);
     }
   );
 
@@ -151,11 +164,7 @@ module.exports.gameHandler = (socketIO, socket) => {
     socket.join(player.roomId);
 
     // notify everyone that a player has joined the room
-    broadcastAction(
-      player.roomId,
-      `${player.name} re-joined the game`,
-      'success'
-    );
+    broadcastAction(player.roomId, `${player.name} joined the game`, 'success');
 
     // broadcast updated player data
     broadcastUpdatedPlayerData(player.roomId);
@@ -238,8 +247,9 @@ module.exports.gameHandler = (socketIO, socket) => {
     // return if no player data
     if (!toPlayer || !fromPlayer) return;
 
-    // add trade request log
-    log(`${fromPlayer.name} sent trade request to  ${toPlayer.name}`);
+    // notify everyone that a trade request has been made
+    const broadcastMessage = `${fromPlayer.name} sent trade request to  ${toPlayer.name}`;
+    broadcastAction(toPlayer.roomId, broadcastMessage);
 
     // notify the player trade request has been made
     socketIO.to(toPlayer.id).emit('trade_request', {
@@ -248,11 +258,27 @@ module.exports.gameHandler = (socketIO, socket) => {
       currentPlayerId,
       requestedBy: fromPlayer.name,
     });
+
+    // disable trade option for all players
+    socketIO.to(toPlayer.roomId).emit('disable_trade');
+    setTimeout(() => {
+      // enable trade option for all players
+      socketIO.to(toPlayer.roomId).emit('enable_trade');
+
+      // notify everyone that a trade has been rejected
+      broadcastAction(
+        toPlayer.roomId,
+        `${toPlayer.name} rejected ${fromPlayer.name}'s trade request`
+      );
+    }, 10 * 1000);
   }
 
   function broadcastAction(roomId, message, type = 'info') {
     // log the message to file/console
     log(message);
+
+    // save action to room history
+    HistoryService.addToRoomHistory(roomId, message, type);
 
     // broadcast action to room
     socketIO.to(roomId).emit('log_action', { message, type });
@@ -261,7 +287,7 @@ module.exports.gameHandler = (socketIO, socket) => {
   function broadcastUpdatedPlayerData(roomId) {
     // broadcast updated player data to room
     socketIO.to(roomId).emit('update_player_data', {
-      roomId,
+      history: HistoryService.getRoomHistory(roomId),
       players: GameService.getActivePlayersInRoom(roomId),
     });
   }
