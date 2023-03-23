@@ -2,22 +2,21 @@
   "name": "monopoly_server",
   "version": "1.0.0",
   "description": "",
-  "engines": {
-    "node": "18.x"
-  },
+  "private": true,
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon ./index.js"
+    "start": "node ./server/index.js",
+    "dev": "nodemon ./server/index.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "IamHaque",
   "license": "ISC",
   "dependencies": {
     "@socket.io/admin-ui": "^0.5.1",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "helmet": "^6.0.1",
-    "socket.io": "^4.6.1"
+    "socket.io": "^4.6.1",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "dotenv": "^16.0.3",
@@ -26,6 +25,7 @@
   "nodemonConfig": {
     "ignore": [
       "*.json",
+      "*.txt",
       "*.log"
     ]
   }
