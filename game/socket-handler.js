@@ -7,7 +7,7 @@ const GameService = require('./service');
 // Service for history logic
 const HistoryService = require('./history-service');
 
-module.exports.gameHandler = (socketIO, socket) => {
+module.exports.gameHandler = (socketIO, socket, namespace) => {
   log(`${socket.id} connected`);
 
   /* ======================================== */
@@ -96,7 +96,7 @@ module.exports.gameHandler = (socketIO, socket) => {
 
       // enable trade option for all players
       const player = GameService.getPlayerByPlayerId(playerId);
-      socketIO.to(player.roomId).emit('enable_trade');
+      socketIO.of(namespace).to(player.roomId).emit('enable_trade');
 
       // trade request accepted
       if (action === 'accept') {
@@ -280,7 +280,7 @@ module.exports.gameHandler = (socketIO, socket) => {
     broadcastAction(toPlayer.roomId, broadcastMessage);
 
     // notify the player trade request has been made
-    socketIO.to(toPlayer.id).emit('trade_request', {
+    socketIO.of(namespace).to(toPlayer.id).emit('trade_request', {
       balance,
       playerId,
       currentPlayerId,
@@ -288,7 +288,7 @@ module.exports.gameHandler = (socketIO, socket) => {
     });
 
     // disable trade option for all players
-    socketIO.to(toPlayer.roomId).emit('disable_trade');
+    socketIO.of(namespace).to(toPlayer.roomId).emit('disable_trade');
 
     // reset trade option and reject trade request after a timeout
     // to handle no response from recipient
@@ -297,7 +297,7 @@ module.exports.gameHandler = (socketIO, socket) => {
       GameService.CAN_TRADE = true;
 
       // enable trade option for all players
-      socketIO.to(toPlayer.roomId).emit('enable_trade');
+      socketIO.of(namespace).to(toPlayer.roomId).emit('enable_trade');
 
       // notify everyone that a trade has been rejected
       broadcastAction(
@@ -326,14 +326,17 @@ module.exports.gameHandler = (socketIO, socket) => {
     HistoryService.addToRoomHistory(roomId, message, type);
 
     // broadcast action to room
-    socketIO.to(roomId).emit('log_action', { message, type });
+    socketIO.of(namespace).to(roomId).emit('log_action', { message, type });
   }
 
   function broadcastUpdatedPlayerData(roomId) {
     // broadcast updated player data to room
-    socketIO.to(roomId).emit('update_player_data', {
-      history: HistoryService.getRoomHistory(roomId),
-      players: GameService.getActivePlayersInRoom(roomId),
-    });
+    socketIO
+      .of(namespace)
+      .to(roomId)
+      .emit('update_player_data', {
+        history: HistoryService.getRoomHistory(roomId),
+        players: GameService.getActivePlayersInRoom(roomId),
+      });
   }
 };

@@ -1,7 +1,15 @@
 const { Server } = require('socket.io');
 
+// Listener for Chat events
+const { chatHandler } = require('../chat/socket-handler');
 // Listener for Game events
 const { gameHandler } = require('../game/socket-handler');
+
+// Namespaces
+const NAMESPACE = {
+  chat: '/chat',
+  monopoly: '/monopoly',
+};
 
 module.exports = (server) => {
   // Configure socket options
@@ -15,6 +23,17 @@ module.exports = (server) => {
   // Socket initialization
   const socketIO = new Server(server, options);
 
-  // Socket connection listener
-  socketIO.on('connection', (socket) => gameHandler(socketIO, socket));
+  // Monopoly Socket connection listener
+  socketIO
+    .of(NAMESPACE.chat)
+    .on('connection', (socket) =>
+      chatHandler(socketIO, socket, NAMESPACE.chat)
+    );
+
+  // Monopoly Socket connection listener
+  socketIO
+    .of(NAMESPACE.monopoly)
+    .on('connection', (socket) =>
+      gameHandler(socketIO, socket, NAMESPACE.monopoly)
+    );
 };
