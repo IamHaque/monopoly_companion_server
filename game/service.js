@@ -12,6 +12,8 @@ const INITIAL_STATUS = 'online';
 
 // Initial game data
 let GAME_DATA = IO.read() || {};
+// Flag denoting if a trade can be made
+let CAN_TRADE = true;
 
 // Custom error class
 class GameError extends Error {
@@ -402,6 +404,7 @@ const generateColor = (roomId) => {
 };
 
 module.exports = {
+  CAN_TRADE,
   getGameData,
   reAddPlayer,
   handleTrade,

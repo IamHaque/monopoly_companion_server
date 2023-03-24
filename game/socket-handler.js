@@ -1,5 +1,7 @@
 // Helper functions
 const { log } = require('../utils/io');
+const { addTimeout, clearTimeouts } = require('../utils/timeout-manager');
+
 // Service for game logic
 const GameService = require('./service');
 // Service for history logic
@@ -57,7 +59,19 @@ module.exports.gameHandler = (socketIO, socket) => {
   // trade
   socket.on('trade', ({ playerId, fromBank, balance, currentPlayerId }) => {
     // return if player trading with himself
-    if (playerId === currentPlayerId) return;
+    if (playerId === currentPlayerId) {
+      sendAlert('Cannot trade with yourself', 'warning');
+      return;
+    }
+
+    // return if another trade is ongoing
+    if (!GameService.CAN_TRADE) {
+      sendAlert('Another trade is in progress', 'warning');
+      return;
+    }
+
+    // start trade process
+    GameService.CAN_TRADE = false;
 
     if (fromBank) {
       // handle bank trade
@@ -74,8 +88,14 @@ module.exports.gameHandler = (socketIO, socket) => {
   socket.on(
     'trade_response',
     ({ action, playerId, balance, requestedBy, currentPlayerId }) => {
-      const player = GameService.getPlayerByPlayerId(playerId);
+      // clear all ongoing trade timeouts
+      clearTimeouts();
+
+      // end trade process
+      GameService.CAN_TRADE = true;
+
       // enable trade option for all players
+      const player = GameService.getPlayerByPlayerId(playerId);
       socketIO.to(player.roomId).emit('enable_trade');
 
       // trade request accepted
@@ -200,6 +220,9 @@ module.exports.gameHandler = (socketIO, socket) => {
       true
     );
 
+    // end trade process
+    GameService.CAN_TRADE = true;
+
     // return if no player
     if (!player) return;
 
@@ -244,8 +267,13 @@ module.exports.gameHandler = (socketIO, socket) => {
     const toPlayer = GameService.getPlayerByPlayerId(playerId);
     // from player data
     const fromPlayer = GameService.getPlayerByPlayerId(currentPlayerId);
+
     // return if no player data
-    if (!toPlayer || !fromPlayer) return;
+    if (!toPlayer || !fromPlayer) {
+      // end trade process
+      GameService.CAN_TRADE = true;
+      return;
+    }
 
     // notify everyone that a trade request has been made
     const broadcastMessage = `${fromPlayer.name} sent trade request to  ${toPlayer.name}`;
@@ -261,7 +289,13 @@ module.exports.gameHandler = (socketIO, socket) => {
 
     // disable trade option for all players
     socketIO.to(toPlayer.roomId).emit('disable_trade');
-    setTimeout(() => {
+
+    // reset trade option and reject trade request after a timeout
+    // to handle no response from recipient
+    const tradeTimeout = setTimeout(() => {
+      // end trade process
+      GameService.CAN_TRADE = true;
+
       // enable trade option for all players
       socketIO.to(toPlayer.roomId).emit('enable_trade');
 
@@ -271,6 +305,17 @@ module.exports.gameHandler = (socketIO, socket) => {
         `${toPlayer.name} rejected ${fromPlayer.name}'s trade request`
       );
     }, 10 * 1000);
+
+    // add the current trade timeout to the list
+    addTimeout(tradeTimeout);
+  }
+
+  function sendAlert(message, type = 'info') {
+    // log the message to file/console
+    log(message);
+
+    // broadcast action to room
+    socket.emit('alert', { message, type });
   }
 
   function broadcastAction(roomId, message, type = 'info') {
