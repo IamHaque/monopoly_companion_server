@@ -7,5 +7,6 @@ const router = express.Router();
 const ChatController = require('./controller');
 
 router.post('/login', ChatController.login);
+router.get('/', ChatController.getAllMessages);
 
 module.exports = router;

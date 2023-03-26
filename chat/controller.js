@@ -1,4 +1,11 @@
+const ChatService = require('./service');
 const { getAllUsers, saveAllUsers } = require('./io');
+
+// Fetch all chats
+module.exports.getAllMessages = (req, res) => {
+  const messages = ChatService.getAll();
+  res.json({ messages });
+};
 
 // Register/Login the user
 module.exports.login = (req, res) => {
@@ -8,26 +15,20 @@ module.exports.login = (req, res) => {
 
   if (!username && !password) {
     return res.status(400).json({
-      error: {
-        username: 'Username is required',
-        password: 'Password is required',
-      },
+      username: 'Username is required',
+      password: 'Password is required',
     });
   }
 
   if (!username) {
     return res.status(400).json({
-      error: {
-        username: 'Username is required',
-      },
+      username: 'Username is required',
     });
   }
 
   if (!password) {
     return res.status(400).json({
-      error: {
-        password: 'Password is required',
-      },
+      password: 'Password is required',
     });
   }
 
@@ -39,9 +40,7 @@ module.exports.login = (req, res) => {
 
   if (USERS[username] !== password) {
     return res.status(400).json({
-      error: {
-        password: 'Incorrect password',
-      },
+      password: 'Incorrect password',
     });
   }
 

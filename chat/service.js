@@ -28,13 +28,16 @@ const getAll = () => {
 const addMessage = (from, message) => {
   if (!CHAT_DATA.messages) CHAT_DATA.messages = [];
 
-  CHAT_DATA.messages.push({
+  const newMessage = {
     from,
     message,
     timestamp: Date.now(),
-  });
+  };
+  CHAT_DATA.messages.unshift(newMessage);
 
   saveMessages();
+
+  return newMessage;
 };
 
 const saveMessages = () => IO.write(CHAT_DATA);
