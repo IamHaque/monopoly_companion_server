@@ -12,6 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 // Router
+app.use('/lifafa', require('../lifafa/router'));
 app.use('/chat', require('../chat/router'));
 app.use('/game', require('../game/router'));
 app.use('/', home);

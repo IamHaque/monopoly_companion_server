@@ -59,8 +59,6 @@ module.exports.chatHandler = (socketIO, socket, namespace) => {
   }
 
   function handleDisconnect() {
-    console.log('handleDisconnect');
-
     const user = Object.keys(USERS_ONLINE).find(
       (user) => USERS_ONLINE[user] === socket.id
     );

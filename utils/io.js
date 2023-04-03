@@ -27,6 +27,7 @@ module.exports.write = (data) => {
     }
   });
 };
+
 // Read history from file
 module.exports.readHistory = () => {
   try {
