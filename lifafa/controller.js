@@ -1,30 +1,39 @@
-const { read, write } = require('./io');
-const { dt, generateId } = require('../utils/helper');
+const { read, write, loadUpiIds, saveUpiIds } = require('./io');
+const { generateId } = require('../utils/helper');
 
 const { verifyUPI, validatePattern } = require('bhimupijs');
 
 module.exports.verifyUpiId = async (req, res) => {
   try {
-    const { vpa } = req.query;
+    const { upiId } = req.body;
 
-    if (!vpa) throw new Error('No VPA provided');
+    if (!upiId) throw new Error('No UPI ID provided');
 
-    const { isQueryPatternValid } = validatePattern(vpa);
-    if (!isQueryPatternValid) throw new Error('Invalid VPA pattern');
+    const cachedUpiIds = loadUpiIds() || {};
+    const isInCache = Object.keys(cachedUpiIds).includes(upiId);
+    if (isInCache) {
+      return res.send(cachedUpiIds[upiId]);
+    }
+
+    const { isQueryPatternValid } = validatePattern(upiId);
+    if (!isQueryPatternValid) throw new Error('Invalid UPI ID pattern');
 
     const { tpap, pspBank, isVpaVerified, payeeAccountName } = await verifyUPI(
-      vpa
+      upiId
     );
 
-    if (!isVpaVerified) throw new Error('Invalid VPA');
+    if (!isVpaVerified) throw new Error('Invalid UPI ID');
 
-    res.send({
-      vpa,
+    cachedUpiIds[upiId] = {
+      upiId,
       bank: pspBank,
       provider: tpap,
       isVerified: isVpaVerified,
       accountName: payeeAccountName,
-    });
+    };
+
+    saveUpiIds(cachedUpiIds);
+    res.send(cachedUpiIds[upiId]);
   } catch (e) {
     res.status(401).send({ message: e.message });
   }
@@ -33,6 +42,8 @@ module.exports.verifyUpiId = async (req, res) => {
 module.exports.createLifafa = (req, res) => {
   try {
     const createdBy = req.body.createdBy || 'Anonymous';
+    const message =
+      req.body.message || 'Every day, be sure to tell somebody thank you';
 
     const count = Number(req.body.count);
     if (isNaN(count) || count < 1) throw new Error('Invalid lifafa count');
@@ -45,13 +56,14 @@ module.exports.createLifafa = (req, res) => {
     const allLifafas = read() || {};
     allLifafas[lifafaId] = {
       count,
+      message,
       lifafaId,
       createdBy,
       claimedBy: [],
       remaining: count,
       initialAmount: amount,
       remainingAmount: amount,
-      createdAt: dt(),
+      createdAt: Date.now(),
     };
     write(allLifafas);
 
@@ -74,10 +86,12 @@ module.exports.claimLifafa = (req, res) => {
     if (!lifafa.remaining) lifafa.remaining = lifafa.count;
     if (!lifafa.claimedBy) lifafa.claimedBy = [];
 
-    const alreadyClaimed = lifafa.claimedBy.some((el) => el.upiId === upiId);
+    const alreadyClaimed = lifafa.claimedBy.some(
+      (el) => el.upiId === upiId || el.accountName === accountName
+    );
     if (alreadyClaimed) throw new Error('Already claimed');
 
-    const MAX_DEVIATION = 30;
+    const MAX_DEVIATION = 35;
     const randomPercent = Math.floor(Math.random() * 2 * MAX_DEVIATION);
 
     const idealAmount = lifafa.remainingAmount / lifafa.remaining;
@@ -99,7 +113,7 @@ module.exports.claimLifafa = (req, res) => {
       upiId,
       accountName,
       claimedAmount,
-      claimedAt: dt(),
+      claimedAt: Date.now(),
     });
 
     allLifafas[lifafaId] = lifafa;
@@ -127,7 +141,7 @@ module.exports.getLifafa = (req, res) => {
       createdAt: lifafa.createdAt,
       createdBy: lifafa.createdBy,
       initialAmount: lifafa.initialAmount,
-      message: 'All lifafas already claimed',
+      errorMessage: 'All lifafas already claimed',
     });
   } catch (e) {
     res.status(404).send({ message: e.message });

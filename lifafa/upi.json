@@ -1,0 +1,23 @@
+{
+  "bastard@ybl": {
+    "upiId": "bastard@ybl",
+    "bank": "Yes Bank",
+    "provider": "PhonePe",
+    "isVerified": true,
+    "accountName": "SYED ALI RAZA KAZMI"
+  },
+  "7844018226@ybl": {
+    "upiId": "7844018226@ybl",
+    "bank": "Yes Bank",
+    "provider": "PhonePe",
+    "isVerified": true,
+    "accountName": "SUBHAN UL HAQUE"
+  },
+  "subhanul@ybl": {
+    "upiId": "subhanul@ybl",
+    "bank": "Yes Bank",
+    "provider": "PhonePe",
+    "isVerified": true,
+    "accountName": "SUBHAN UL HAQUE"
+  }
+}
